@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { TradingSignal } from '../lib/types';
 import { generateSignal, getCurrentSession, getTimeUntilNextInterval } from '../lib/signalGenerator';
-import SignalCard from './SignalCard';
-import SessionIndicator from './SessionIndicator';
-import Header from './Header';
-import StatsCard from './StatsCard';
-import ControlsPanel from './ControlsPanel';
-import { Activity, History } from 'lucide-react';
+import SignalCard from '../components/SignalCard';
+import SessionIndicator from '../components/SessionIndicator';
+import StatsCard from '../components/StatsCard';
+import ControlsPanel from '../components/ControlsPanel';
+import { Activity } from 'lucide-react';
 
-export default function Dashboard() {
+export default function DashboardPage() {
   const [signals, setSignals] = useState<TradingSignal[]>([]);
   const [currentSignal, setCurrentSignal] = useState<TradingSignal | null>(null);
   const [isAutoMode, setIsAutoMode] = useState(false);
@@ -80,7 +79,7 @@ export default function Dashboard() {
       .from('trading_signals')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(6);
 
     if (!error && data) {
       setSignals(data);
@@ -155,85 +154,80 @@ export default function Dashboard() {
   const sellSignals = signals.filter(s => s.action === 'SELL').length;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Header />
+    <main className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <SessionIndicator session={session} />
+      </div>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <SessionIndicator session={session} />
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <StatsCard
+          label="Recent Signals"
+          value={totalSignals}
+          icon="signals"
+          theme="blue"
+        />
+        <StatsCard
+          label="Buy Signals"
+          value={buySignals}
+          icon="trending"
+          theme="emerald"
+          change={{ value: Math.round((buySignals / Math.max(totalSignals, 1)) * 100), trend: 'up' }}
+        />
+        <StatsCard
+          label="Sell Signals"
+          value={sellSignals}
+          icon="success"
+          theme="orange"
+          change={{ value: Math.round((sellSignals / Math.max(totalSignals, 1)) * 100), trend: 'up' }}
+        />
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <StatsCard
-            label="Total Signals"
-            value={totalSignals}
-            icon="signals"
-            theme="blue"
-          />
-          <StatsCard
-            label="Buy Signals"
-            value={buySignals}
-            icon="trending"
-            theme="emerald"
-            change={{ value: Math.round((buySignals / Math.max(totalSignals, 1)) * 100), trend: 'up' }}
-          />
-          <StatsCard
-            label="Sell Signals"
-            value={sellSignals}
-            icon="success"
-            theme="orange"
-            change={{ value: Math.round((sellSignals / Math.max(totalSignals, 1)) * 100), trend: 'up' }}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
-          <div className="lg:col-span-3">
-            {currentSignal && (
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                    <h2 className="text-2xl font-bold text-slate-900">Active Signal</h2>
-                  </div>
-                  <span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">LIVE</span>
-                </div>
-                <SignalCard signal={currentSignal} />
-              </div>
-            )}
-
-            <div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="lg:col-span-3">
+          {currentSignal && (
+            <div className="mb-8">
               <div className="flex items-center gap-3 mb-5">
-                <History className="w-6 h-6 text-slate-900" />
-                <h2 className="text-2xl font-bold text-slate-900">Signal History</h2>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <h2 className="text-2xl font-bold text-slate-900">Active Signal</h2>
+                </div>
+                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">LIVE</span>
               </div>
-              {signals.length === 0 ? (
-                <div className="bg-white rounded-xl p-16 text-center border border-slate-200 shadow-sm">
-                  <Activity className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-500 text-lg">No signals generated yet</p>
-                  <p className="text-slate-400 text-sm mt-2">Start generating signals to see the history here</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {signals.map((signal) => (
-                    <SignalCard key={signal.id} signal={signal} />
-                  ))}
-                </div>
-              )}
+              <SignalCard signal={currentSignal} />
             </div>
-          </div>
+          )}
 
           <div>
-            <ControlsPanel
-              isAutoMode={isAutoMode}
-              nextSignalIn={nextSignalIn}
-              isGenerating={isGenerating}
-              onToggleMode={toggleMode}
-              onGenerateSignal={generateAndSaveSignal}
-              onClearHistory={clearHistory}
-            />
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-2xl font-bold text-slate-900">Recent Signals</h2>
+            </div>
+            {signals.length === 0 ? (
+              <div className="bg-white rounded-xl p-16 text-center border border-slate-200 shadow-sm">
+                <Activity className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500 text-lg">No signals generated yet</p>
+                <p className="text-slate-400 text-sm mt-2">Start generating signals to see them here</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {signals.map((signal) => (
+                  <SignalCard key={signal.id} signal={signal} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      </main>
-    </div>
+
+        <div>
+          <ControlsPanel
+            isAutoMode={isAutoMode}
+            nextSignalIn={nextSignalIn}
+            isGenerating={isGenerating}
+            onToggleMode={toggleMode}
+            onGenerateSignal={generateAndSaveSignal}
+            onClearHistory={clearHistory}
+          />
+        </div>
+      </div>
+    </main>
   );
 }
